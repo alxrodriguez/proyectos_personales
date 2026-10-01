@@ -1,0 +1,41 @@
+name: Read Baliarda AWS Calculator Costs
+on:
+  push:
+    branches:
+      - 'tmp/aws-calculator-baliarda-20261001'
+    paths:
+      - 'scripts/read_baliarda_calculator_costs.js'
+      - '.github/workflows/read-baliarda-calculator-costs.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  read-costs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout scratch branch
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Clone official AWS sample pricing-calculator MCP
+        run: git clone --depth 1 https://github.com/aws-samples/sample-aws-pricing-calculator-mcp.git /tmp/calcmcp
+      - name: Install MCP dependencies including Playwright
+        working-directory: /tmp/calcmcp
+        run: npm ci
+      - name: Install Chromium
+        working-directory: /tmp/calcmcp
+        run: npx playwright install --with-deps chromium
+      - name: Read rendered monthly costs
+        env:
+          CALC_REPO: /tmp/calcmcp
+          OUTPUT_DIR: /tmp/calculator-costs
+        run: node scripts/read_baliarda_calculator_costs.js
+      - name: Upload costs
+        uses: actions/upload-artifact@v4
+        with:
+          name: baliarda-aws-calculator-costs
+          path: /tmp/calculator-costs
+          retention-days: 7

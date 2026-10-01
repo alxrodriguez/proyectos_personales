@@ -1,0 +1,38 @@
+name: Generate Baliarda AWS Pricing Calculators V2
+on:
+  push:
+    branches:
+      - 'tmp/aws-calculator-baliarda-20261001'
+    paths:
+      - 'scripts/create_baliarda_calculators_v2.js'
+      - '.github/workflows/generate-baliarda-calculators-v2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout scratch branch
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Clone official AWS sample pricing-calculator MCP
+        run: git clone --depth 1 https://github.com/aws-samples/sample-aws-pricing-calculator-mcp.git /tmp/calcmcp
+      - name: Install MCP dependencies
+        working-directory: /tmp/calcmcp
+        run: npm ci --omit=dev
+      - name: Generate estimates
+        env:
+          CALC_REPO: /tmp/calcmcp
+          OUTPUT_DIR: /tmp/calculator-output
+        run: node scripts/create_baliarda_calculators_v2.js
+      - name: Upload calculator URLs and payloads
+        uses: actions/upload-artifact@v4
+        with:
+          name: baliarda-aws-calculators-v2
+          path: /tmp/calculator-output
+          retention-days: 7
